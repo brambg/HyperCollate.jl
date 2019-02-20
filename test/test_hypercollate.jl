@@ -9,5 +9,5 @@ using Test
 @testset "hypercollate" begin
     using HyperCollate
 
-    @test 1 == 2
+    # TODO
 end
