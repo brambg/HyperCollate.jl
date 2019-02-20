@@ -8,4 +8,5 @@ using Test
 
 @testset "all tests" begin
     include("test_hypercollate.jl")
+    include("test_xmlparser.jl")
 end
