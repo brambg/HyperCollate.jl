@@ -9,5 +9,11 @@ using Test
 @testset "hypercollate" begin
     using HyperCollate
 
-    # TODO
+    xml = "<text><s><subst><del>Dit kwam van een</del><add>De</add></subst> te streng doorgedreven rationalisatie</s></text>"
+    tuples = []
+    root  = xp_parse(xml)
+    element = "<$(root.name)>"
+    
+
+
 end
