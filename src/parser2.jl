@@ -88,41 +88,38 @@ function get_triples(xml::String)
     return ctx.triples
 end
 
-
 parent(x) = isdefined(x.element, :parent) ? x.element.parent : "XML"
 
 function group_triples(triples)
     return triples |> @groupby(parent(_)) |> collect
 end
 
-function display_text(t::Triple)
-    text = String(take!(t.text))
-    print(text)
+function serialize_text(t::Triple)
+    return String(take!(t.text))
 end
 
-function display_tail(t::Triple)
-    tail = String(take!(t.tail))
-    print(tail)
+function serialize_tail(t::Triple)
+    return String(take!(t.tail))
 end
 
-function display_group(g)
-    if (length(g)>1)
-        print("<|")
+function serialize_group(g)
+    buf = IOBuffer()
+    if (length(g) > 1)
+        print(buf,"<|")
         for t in g
-            display_text(t)
-            print("|")
+            print(buf,serialize_text(t),"|")
         end
-        print(">")
-        display_tail(g[end])
+        print(buf,">",serialize_tail(g[end]))
     else
-        display_text(g[1])
-        display_tail(g[1])
+        print(buf,serialize_text(g[1]),serialize_tail(g[1]))
     end
+    return String(take!(buf))
 end
 
-function print_text(grouped_triples)
+function serialize_grouped_triples(grouped_triples)
+    serbuf = IOBuffer()
     for group in grouped_triples
-        display_group(group)
+        print(serbuf,serialize_group(group))
     end
-    println()
+    return String(take!(serbuf))
 end

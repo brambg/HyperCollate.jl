@@ -10,12 +10,25 @@ using Test
     using HyperCollate
 
     xml = "<text><s><subst><del>Dit kwam van een</del><add>De</add></subst> te streng doorgedreven rationalisatie</s></text>"
-
     @show(xml)
+    serialized = get_triples(xml) |> group_triples |> serialize_grouped_triples
+    @test serialized == "<|Dit kwam van een|De|> te streng doorgedreven rationalisatie"
+    @show(serialized)
+    println()
 
-    triples = get_triples(xml)
-    g = group_triples(triples)
-    print_text(g)
+    xml = "<xml>The rain in <subst><del>Cataluña</del><add>Spain</add></subst> falls mainly on the plain.</xml>"
+    @show(xml)
+    serialized = get_triples(xml) |> group_triples |> serialize_grouped_triples
+    @test serialized == "The rain in <|Cataluña|Spain|> falls mainly on the plain."
+    @show(serialized)
+    println()
+
+    xml = "<xml>The rain in Spain falls mainly on the <subst><del>street</del><add>plain</add></subst>.</xml>"
+    @show(xml)
+    serialized = get_triples(xml) |> group_triples |> serialize_grouped_triples
+    @test serialized == "The rain in Spain falls mainly on the <|street|plain|>."
+    @show(serialized)
+    println()
 
 #     for t in triples
 #         parent = isdefined(t.element, :parent) ? t.element.parent.name : ""
