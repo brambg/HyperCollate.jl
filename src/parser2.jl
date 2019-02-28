@@ -13,10 +13,11 @@ using DataStructures
 mutable struct Element
     name::String
     attributes::Dict{String,String}
+    in_text_divergence::Bool
     parent::Element
 
     function Element(name::String)
-        new(name,Dict{String,String}())
+        new(name,Dict{String,String}(),false)
     end
 end
 
@@ -40,6 +41,7 @@ mutable struct Context
     tail
     text_state::TextState
     open_elements::Array{Element}
+    open_divergence_elements::Array{Element}
 
     function Context()
         last_element_is_open = false
@@ -48,8 +50,13 @@ mutable struct Context
         tail = IOBuffer()
         text_state = TEXT;
         open_elements = []
-        new(last_element_is_open,triples,text,tail,text_state,open_elements)
+        open_divergence_elements = []
+        new(last_element_is_open,triples,text,tail,text_state,open_elements,open_divergence_elements)
     end
+end
+
+function is_divergence_element(name::String)
+    name in ["subst", "choice", "app"]
 end
 
 function get_triples(xml::String)
@@ -60,6 +67,7 @@ function get_triples(xml::String)
 #         println("<$name>")
         triple = Triple()
         triple.element = Element(name)
+        triple.element.in_text_divergence = !isempty(h.data.open_divergence_elements)
         push!(h.data.triples,triple)
         h.data.last_element_is_open = true
         h.data.text_state = TEXT
@@ -68,11 +76,17 @@ function get_triples(xml::String)
             triple.element.parent = parent
         end
         pushfirst!(h.data.open_elements,triple.element)
+        if (is_divergence_element(triple.element.name))
+            pushfirst!(h.data.open_divergence_elements,triple.element)
+        end
     end
     cbs.end_element = function(h, name)
 #         println("</$name>")
         h.data.text_state = TAIL
         popfirst!(h.data.open_elements)
+        if (is_divergence_element(name))
+            popfirst!(h.data.open_divergence_elements)
+        end
     end
     cbs.character_data = function(h, txt)
 #         println("\"$txt\"")
@@ -105,11 +119,17 @@ end
 function serialize_group(g)
     buf = IOBuffer()
     if (length(g) > 1)
-        print(buf,"<|")
-        for t in g
-            print(buf,serialize_text(t),"|")
+        if (g[1].element.in_text_divergence)
+            print(buf,"<|")
+            for t in g
+                print(buf,serialize_text(t),"|")
+            end
+            print(buf,">",serialize_tail(g[end]))
+        else
+            for t in g
+                print(buf,serialize_text(t),serialize_tail(t))
+            end
         end
-        print(buf,">",serialize_tail(g[end]))
     else
         print(buf,serialize_text(g[1]),serialize_tail(g[1]))
     end
