@@ -16,9 +16,7 @@ mutable struct Element
     in_text_divergence::Bool
     parent::Element
 
-    function Element(name::String)
-        new(name,Dict{String,String}(),false)
-    end
+    Element(name::String) = new(name,Dict{String,String}(),false)
 end
 
 mutable struct Triple
@@ -55,9 +53,7 @@ mutable struct Context
     end
 end
 
-function is_divergence_element(name::String)
-    name in ["subst", "choice", "app"]
-end
+is_divergence_element(name::String) = name in ["subst", "choice", "app"]
 
 function get_triples(xml::String)
     ctx = Context()
@@ -102,19 +98,13 @@ function get_triples(xml::String)
     return ctx.triples
 end
 
-parent(x) = isdefined(x.element, :parent) ? x.element.parent : "XML"
+parent(x::Triple) = isdefined(x.element, :parent) ? x.element.parent : "XML"
 
-function group_triples(triples)
-    return triples |> @groupby(parent(_)) |> collect
-end
+group_triples(triples) = triples |> @groupby(parent(_)) |> collect
 
-function serialize_text(t::Triple)
-    return String(take!(t.text))
-end
+serialize_text(t::Triple) = String(take!(t.text))
 
-function serialize_tail(t::Triple)
-    return String(take!(t.tail))
-end
+serialize_tail(t::Triple) = String(take!(t.tail))
 
 function serialize_group(g)
     buf = IOBuffer()
