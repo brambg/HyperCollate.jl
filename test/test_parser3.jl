@@ -25,4 +25,7 @@ using Test
 #     println(to_dot(to_graph("<x>Donald smacked <choice><option>Huey</option><option>Dewey</option><option>Louie</option></choice> on his beak.</x>")))
     println(to_dot(to_graph("<xml>To be, or <subst><del>whatever</del><add>not to <subst><del>butterfly</del><add>be</add></subst></add></subst></xml>")))
 
+    println(to_dot(to_graph("<x>pre <app><rdg>one <b>golden goose</b> waddling</rdg><rdg>two <b>cooked hens</b> smelling</rdg><rdg>three <b>roasted ducks</b> cooling</rdg></app> post</x>")))
+
+
 end

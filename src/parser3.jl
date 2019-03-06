@@ -24,9 +24,11 @@ end
 
 mutable struct GraphBuildContext
     divergencenodes::Array{Int,1}
-    last_unconnected_node
+    open_tags::Array{String,1}
+    last_unconnected_node::Int
     branch_ends::Dict{Int,Array{Int,1}}
-    GraphBuildContext() = new([],0,Dict{Int,Array{Int,1}}())
+
+    GraphBuildContext() = new([],[],0,Dict{Int,Array{Int,1}}())
 end
 
 struct GraphBuilder
@@ -57,7 +59,7 @@ end
 function grow_graph!(gb::GraphBuilder, startelement::XMLStartElement)
 #     @show(gb)
 #     @show(startelement)
-
+    push!(gb.context.open_tags,startelement.name)
     if (is_divergence_element(startelement.name))
         v = add_divergence_node!(gb)
         push!(gb.context.divergencenodes,v)
@@ -70,10 +72,15 @@ function grow_graph!(gb::GraphBuilder, startelement::XMLStartElement)
     return gb
 end
 
+function parent_is_divergence_element(gb::GraphBuilder)
+    return !isempty(gb.context.open_tags) && is_divergence_element(gb.context.open_tags[end])
+end
+
 function grow_graph!(gb::GraphBuilder, endelement::XMLEndElement)
 #     @show(gb)
 #     @show(endelement)
 
+    pop!(gb.context.open_tags)
     if (is_divergence_element(endelement.name))
         v = add_convergence_node!(gb)
         variation = pop!(gb.context.divergencenodes)
@@ -81,7 +88,8 @@ function grow_graph!(gb::GraphBuilder, endelement::XMLEndElement)
            add_edge!(gb.metagraph.graph,n,v)
         end
         gb.context.last_unconnected_node = v
-    elseif (!isempty(gb.context.divergencenodes))
+
+    elseif (parent_is_divergence_element(gb))
         variation = gb.context.divergencenodes[end]
         branch_ends = gb.context.branch_ends[variation]
         push!(branch_ends,gb.context.last_unconnected_node)
@@ -100,7 +108,6 @@ function grow_graph!(gb::GraphBuilder, texttoken::TextToken)
     add_vertices!(gb.metagraph.graph,1)
     v = nv(gb.metagraph.graph)
     set_props!(gb.metagraph,v,Dict(:type => TEXTNODE,:text => texttoken.text))
-    gb.context.last_unconnected_node
     add_edge!(gb.metagraph.graph,gb.context.last_unconnected_node,v)
     gb.context.last_unconnected_node = v
 
