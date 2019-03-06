@@ -23,9 +23,10 @@ struct TextToken <: XMLToken
 end
 
 mutable struct GraphBuildContext
-    divergencenodes::Array{Int}
+    divergencenodes::Array{Int,1}
     last_unconnected_node
-    GraphBuildContext() = new([],0)
+    branch_ends::Dict{Int,Array{Int,1}}
+    GraphBuildContext() = new([],0,Dict{Int,Array{Int,1}}())
 end
 
 struct GraphBuilder
@@ -54,37 +55,47 @@ function add_convergence_node!(gb::GraphBuilder)
 end
 
 function grow_graph!(gb::GraphBuilder, startelement::XMLStartElement)
-    @show(gb)
-    @show(startelement)
+#     @show(gb)
+#     @show(startelement)
 
     if (is_divergence_element(startelement.name))
         v = add_divergence_node!(gb)
         push!(gb.context.divergencenodes,v)
         add_edge!(gb.metagraph.graph,gb.context.last_unconnected_node,v)
         gb.context.last_unconnected_node = v
+        gb.context.branch_ends[v] = []
     end
 
-    println()
+#     println()
     return gb
 end
 
 function grow_graph!(gb::GraphBuilder, endelement::XMLEndElement)
-    @show(gb)
-    @show(endelement)
+#     @show(gb)
+#     @show(endelement)
 
     if (is_divergence_element(endelement.name))
         v = add_convergence_node!(gb)
-        pop!(gb.context.divergencenodes)
+        variation = pop!(gb.context.divergencenodes)
+        for n in gb.context.branch_ends[variation]
+           add_edge!(gb.metagraph.graph,n,v)
+        end
         gb.context.last_unconnected_node = v
+    elseif (!isempty(gb.context.divergencenodes))
+        variation = gb.context.divergencenodes[end]
+        branch_ends = gb.context.branch_ends[variation]
+        push!(branch_ends,gb.context.last_unconnected_node)
+        gb.context.branch_ends[variation] = branch_ends
+        gb.context.last_unconnected_node = variation
     end
 
-    println()
+#     println()
     return gb
 end
 
 function grow_graph!(gb::GraphBuilder, texttoken::TextToken)
-    @show(gb)
-    @show(texttoken)
+#     @show(gb)
+#     @show(texttoken)
 
     add_vertices!(gb.metagraph.graph,1)
     v = nv(gb.metagraph.graph)
@@ -93,7 +104,7 @@ function grow_graph!(gb::GraphBuilder, texttoken::TextToken)
     add_edge!(gb.metagraph.graph,gb.context.last_unconnected_node,v)
     gb.context.last_unconnected_node = v
 
-    println()
+#     println()
     return gb
 end
 
@@ -124,7 +135,7 @@ string_value(t::TextToken) = "$(t.text)"
 function to_dot(mg::MetaGraph)
     digraph = _metagraph_as_dot(mg)
 
-    dot="""
+    dot = """
     digraph VariantGraph {
         rankdir=LR
         labelloc=b

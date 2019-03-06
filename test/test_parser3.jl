@@ -16,9 +16,13 @@ using Test
     @test map(string_value,tokens) == ["<text>", "<s>", "<subst>", "<del>", "Dit kwam van een", "</del>", "<add>", "De", "</add>", "</subst>", " te streng doorgedreven rationalisatie", "</s>", "</text>"]
 
     g = to_graph(xml)
-    @show(g)
+#     @show(g)
 
     dot = to_dot(g)
     println(dot)
+
+#     println(to_dot(to_graph("<x>De <a>kat</a> krabt <b>de krullen</b> van de trap</x>")))
+#     println(to_dot(to_graph("<x>Donald smacked <choice><option>Huey</option><option>Dewey</option><option>Louie</option></choice> on his beak.</x>")))
+    println(to_dot(to_graph("<xml>To be, or <subst><del>whatever</del><add>not to <subst><del>butterfly</del><add>be</add></subst></add></subst></xml>")))
 
 end
