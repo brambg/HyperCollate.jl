@@ -24,7 +24,8 @@ end
 
 mutable struct GraphBuildContext
     divergencenodes::Array{Int}
-    GraphBuildContext() = new([])
+    last_unconnected_node
+    GraphBuildContext() = new([],0)
 end
 
 struct GraphBuilder
@@ -59,6 +60,8 @@ function grow_graph!(gb::GraphBuilder, startelement::XMLStartElement)
     if (is_divergence_element(startelement.name))
         v = add_divergence_node!(gb)
         push!(gb.context.divergencenodes,v)
+        add_edge!(gb.metagraph.graph,gb.context.last_unconnected_node,v)
+        gb.context.last_unconnected_node = v
     end
 
     println()
@@ -72,6 +75,7 @@ function grow_graph!(gb::GraphBuilder, endelement::XMLEndElement)
     if (is_divergence_element(endelement.name))
         v = add_convergence_node!(gb)
         pop!(gb.context.divergencenodes)
+        gb.context.last_unconnected_node = v
     end
 
     println()
@@ -85,6 +89,9 @@ function grow_graph!(gb::GraphBuilder, texttoken::TextToken)
     add_vertices!(gb.metagraph.graph,1)
     v = nv(gb.metagraph.graph)
     set_props!(gb.metagraph,v,Dict(:type => TEXTNODE,:text => texttoken.text))
+    gb.context.last_unconnected_node
+    add_edge!(gb.metagraph.graph,gb.context.last_unconnected_node,v)
+    gb.context.last_unconnected_node = v
 
     println()
     return gb
@@ -108,9 +115,52 @@ end
 
 to_graph(xml::String) = accumulate(grow_graph!,tokenize(xml); init = GraphBuilder())[1].metagraph
 
-string(t::XMLStartElement) = "<$(t.name)>"
+string_value(t::XMLStartElement) = "<$(t.name)>"
 
-string(t::XMLEndElement) = "</$(t.name)>"
+string_value(t::XMLEndElement) = "</$(t.name)>"
 
-string(t::TextToken) = "$(t.text)"
+string_value(t::TextToken) = "$(t.text)"
+
+function to_dot(mg::MetaGraph)
+    digraph = _metagraph_as_dot(mg)
+
+    dot="""
+    digraph VariantGraph {
+        rankdir=LR
+        labelloc=b
+        color=white
+        edge [arrowsize=0.5]
+        $digraph
+    }
+    """
+    return dot
+end
+
+function _metagraph_as_dot(mg::MetaGraph)
+    nodes_buf = IOBuffer()
+    for n in 1:nv(mg.graph)
+        type = get_prop(mg,n,:type)
+        if (type == TEXTNODE)
+            text = get_prop(mg,n,:text)
+            node_def = """v$n[shape=box;label="$text"]"""
+        else
+            node_def = """v$n[shape=circle;width=0.05;label=""]"""
+        end
+        println(nodes_buf,node_def)
+    end
+    nodes = String(take!(nodes_buf))
+
+    edges_buf = IOBuffer()
+    for e in edges(mg.graph)
+        edge_def = """v$(e.src) -> v$(e.dst)"""
+        println(edges_buf,edge_def)
+    end
+    edgesstring = String(take!(edges_buf))
+
+    dot = """
+    $nodes
+    $edgesstring
+    """
+    return dot
+end
 

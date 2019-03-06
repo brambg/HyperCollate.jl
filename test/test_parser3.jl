@@ -13,9 +13,12 @@ using Test
     xml = "<text><s><subst><del>Dit kwam van een</del><add>De</add></subst> te streng doorgedreven rationalisatie</s></text>"
     @show(xml)
     tokens = tokenize(xml)
-    @test map(string,tokens) == ["<text>", "<s>", "<subst>", "<del>", "Dit kwam van een", "</del>", "<add>", "De", "</add>", "</subst>", " te streng doorgedreven rationalisatie", "</s>", "</text>"]
+    @test map(string_value,tokens) == ["<text>", "<s>", "<subst>", "<del>", "Dit kwam van een", "</del>", "<add>", "De", "</add>", "</subst>", " te streng doorgedreven rationalisatie", "</s>", "</text>"]
 
     g = to_graph(xml)
     @show(g)
+
+    dot = to_dot(g)
+    println(dot)
 
 end
