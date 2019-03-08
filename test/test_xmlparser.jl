@@ -7,7 +7,7 @@ test_xmlparser:
 using Test
 
 @testset "xmlparser" begin
-    using HyperCollate
+    include("../src/xmlparser.jl")
 
     xml = "<xml>Mondays are <del>well good</del><add>def bad</add>!</xml>"
     root = xp_parse(xml)

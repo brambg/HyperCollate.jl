@@ -134,27 +134,27 @@ end
 
 @enum(VertexType,TEXTNODE,DIVERGENCE,CONVERGENCE)
 
-function to_graph(grouped_triples)
-    mg = MetaGraph(SimpleGraph())
-    for group in grouped_triples
-        for triple in group
-            text = serialize_text(triple)
-            @show(text)
-            if (!isempty(text))
-                add_vertices!(mg.graph,1)
-                v = nv(mg.graph)
-                set_props!(mg,v,Dict(:type => TEXTNODE,:text => text))
-                v>1 && add_edge!(mg.graph, v-1, v)
-            end
-            tail = serialize_tail(triple)
-            @show(tail)
-            if (!isempty(tail))
-                add_vertices!(mg.graph,1)
-                v = nv(mg.graph)
-                set_props!(mg,v,Dict(:type => TEXTNODE,:text => tail))
-                v>1 && add_edge!(mg.graph, v-1, v)
-            end
-        end
-    end
-    return mg
-end
+# function to_graph(grouped_triples::Array{Group{Triple},1})
+#     mg = MetaGraph(SimpleGraph())
+#     for group in grouped_triples
+#         for triple in group
+#             text = serialize_text(triple)
+#             @show(text)
+#             if (!isempty(text))
+#                 add_vertices!(mg.graph,1)
+#                 v = nv(mg.graph)
+#                 set_props!(mg,v,Dict(:type => TEXTNODE,:text => text))
+#                 v>1 && add_edge!(mg.graph, v-1, v)
+#             end
+#             tail = serialize_tail(triple)
+#             @show(tail)
+#             if (!isempty(tail))
+#                 add_vertices!(mg.graph,1)
+#                 v = nv(mg.graph)
+#                 set_props!(mg,v,Dict(:type => TEXTNODE,:text => tail))
+#                 v>1 && add_edge!(mg.graph, v-1, v)
+#             end
+#         end
+#     end
+#     return mg
+# end
