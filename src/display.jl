@@ -8,6 +8,7 @@ display:
 using MetaGraphs
 
 import Base.display
+
 function Base.display(mime::MIME"image/svg+xml", mg::MetaGraph)
     _display_svg(mg)
 end
@@ -30,10 +31,6 @@ function _display_png(x)
     rm(file)
 end
 
-function show_svg(mg::MetaGraph)
-    display("image/svg+xml",mg)
-end
+show_svg(mg::MetaGraph) = display("image/svg+xml",mg)
 
-function show_png(mg::MetaGraph)
-    display("image/png",mg)
-end
+show_png(mg::MetaGraph) = display("image/png",mg)
