@@ -20,12 +20,14 @@ function _display_svg(x)
     file = "tmp.dot"
     write(file,to_dot(x))
     display("image/svg+xml", read(`dot -Tsvg $file`,String))
+    rm(file)
 end
 
 function _display_png(x)
     file = "tmp.dot"
     write(file,to_dot(x))
     display("image/png", read(`dot -Tpng -Gfontname=Sans $file`))
+    rm(file)
 end
 
 function show_svg(mg::MetaGraph)
