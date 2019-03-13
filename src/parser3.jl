@@ -23,12 +23,12 @@ struct TextToken <: XMLToken
 end
 
 mutable struct GraphBuildContext
-    divergencenodes::Array{Int,1}
-    open_tags::Array{String,1}
+    divergencenodes::Vector{Int}
+    open_tags::Vector{String}
     last_unconnected_node::Int
-    branch_ends::Dict{Int,Array{Int,1}}
+    branch_ends::Dict{Int,Vector{Int}}
 
-    GraphBuildContext() = new([],[],0,Dict{Int,Array{Int,1}}())
+    GraphBuildContext() = new([],[],0,Dict{Int,Vector{Int}}())
 end
 
 struct GraphBuilder
@@ -115,7 +115,7 @@ function grow_graph!(gb::GraphBuilder, texttoken::TextToken)
     return gb
 end
 
-function tokenize(xml::String)::Array{XMLToken}
+function tokenize(xml::String)::Vector{XMLToken}
     tokens = []
     cbs = XPCallbacks()
     cbs.start_element = function(h, name, attrs)
@@ -131,7 +131,7 @@ function tokenize(xml::String)::Array{XMLToken}
     return tokens
 end
 
-to_graph(xml::String) = accumulate(grow_graph!,tokenize(xml); init = GraphBuilder())[1].metagraph
+to_graph(xml::String) = reduce(grow_graph!,tokenize(xml); init = GraphBuilder()).metagraph
 
 string_value(t::XMLStartElement) = "<$(t.name)>"
 
