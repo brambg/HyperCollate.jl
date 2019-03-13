@@ -18,7 +18,7 @@ struct XMLEndElement <: XMLToken
     name::String
 end
 
-struct TextToken <: XMLToken
+mutable struct TextToken <: XMLToken
     text::String
 end
 
@@ -125,7 +125,11 @@ function tokenize(xml::String)::Vector{XMLToken}
         push!(h.data, XMLEndElement(name))
     end
     cbs.character_data = function(h, txt)
-        push!(h.data, TextToken(txt))
+        if (isa(h.data[end],TextToken))
+            h.data[end].text *= txt
+        else
+            push!(h.data, TextToken(txt))
+        end
     end
     parse(xml,cbs,data = tokens)
     return tokens

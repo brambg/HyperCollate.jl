@@ -109,6 +109,16 @@ using Test
     _test_normalized_strings_are_equal(dot,expected)
     _print_dot(dot)
 
+    xml = """
+    <xml>
+        <p>
+            newlines are fun!
+        </p>
+    </xml>
+    """
+    tokens = tokenize(xml)
+    @show(tokens)
+
 #     println(to_dot(to_graph("<x>De <a>kat</a> krabt <b>de krullen</b> van de trap</x>")))
 #     println(to_dot(to_graph("<x>Donald smacked <choice><option>Huey</option><option>Dewey</option><option>Louie</option></choice> on his beak.</x>")))
 end
