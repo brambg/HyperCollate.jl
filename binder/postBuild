@@ -1,1 +1,4 @@
+#!/bin/bash
+echo $PATH
+which julia
 julia -e "import Pkg;Pkg.develop(Pkg.PackageSpec(url=\".\"))"
