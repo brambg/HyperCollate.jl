@@ -17,7 +17,9 @@ module HyperCollate
         tokenize,
         to_graph,
         to_dot,
-        string_value
+        string_value,
+        Collation,add_witness!,collate!,needs_witness,ready_to_collate,is_collated,
+        ranking
 #         xp_parse,
 #         create_an_array_of_the_xml_nodes,
 #         convert_to_xml_blocks,
@@ -26,5 +28,6 @@ module HyperCollate
 
 #     include("xmlparser.jl")
     include("parser3.jl")
+    include("collater.jl")
 
 end

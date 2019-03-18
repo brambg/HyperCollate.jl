@@ -45,14 +45,14 @@ is_divergence_element(name::String) = name in ["subst", "choice", "app"]
 function add_divergence_node!(gb::GraphBuilder)
     add_vertices!(gb.metagraph.graph,1)
     v = nv(gb.metagraph.graph)
-    set_props!(gb.metagraph,v,Dict(:type => DIVERGENCE))
+    set_props!(gb.metagraph,v,Dict(:type => DIVERGENCE, :text => "<"))
     return v
 end
 
 function add_convergence_node!(gb::GraphBuilder)
     add_vertices!(gb.metagraph.graph,1)
     v = nv(gb.metagraph.graph)
-    set_props!(gb.metagraph,v,Dict(:type => CONVERGENCE))
+    set_props!(gb.metagraph,v,Dict(:type => CONVERGENCE, :text => ">"))
     return v
 end
 
