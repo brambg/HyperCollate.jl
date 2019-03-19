@@ -23,19 +23,19 @@ mutable struct TextToken <: XMLToken
 end
 
 mutable struct GraphBuildContext
-    divergencenodes::Vector{Int}
+    divergencenodes::Vector{Integer}
     open_tags::Vector{String}
-    last_unconnected_node::Int
-    branch_ends::Dict{Int,Vector{Int}}
+    last_unconnected_node::Integer
+    branch_ends::Dict{Integer,Vector{Integer}}
 
-    GraphBuildContext() = new([],[],0,Dict{Int,Vector{Int}}())
+    GraphBuildContext() = new([],[],0,Dict{Integer,Vector{Integer}}())
 end
 
 struct GraphBuilder
-  metagraph::MetaGraph
+  metagraph::MetaDiGraph
   context::GraphBuildContext
 
-  GraphBuilder() = new(MetaGraph(SimpleGraph()),GraphBuildContext())
+  GraphBuilder() = new(MetaDiGraph(SimpleDiGraph()),GraphBuildContext())
 end
 
 @enum(VertexType,TEXTNODE,DIVERGENCE,CONVERGENCE)
@@ -135,7 +135,7 @@ function tokenize(xml::String)::Vector{XMLToken}
     return tokens
 end
 
-to_graph(xml::String) = reduce(grow_graph!,tokenize(xml); init = GraphBuilder()).metagraph
+to_graph(xml::String) = reduce(grow_graph!, tokenize(xml); init = GraphBuilder()).metagraph
 
 string_value(t::XMLStartElement) = "<$(t.name)>"
 
@@ -143,7 +143,7 @@ string_value(t::XMLEndElement) = "</$(t.name)>"
 
 string_value(t::TextToken) = "$(t.text)"
 
-function to_dot(mg::MetaGraph)
+function to_dot(mg::MetaDiGraph)
     digraph = _metagraph_as_dot(mg)
 
     dot = """
@@ -158,7 +158,7 @@ function to_dot(mg::MetaGraph)
     return dot
 end
 
-function _metagraph_as_dot(mg::MetaGraph)
+function _metagraph_as_dot(mg::MetaDiGraph)
     nodes_buf = IOBuffer()
     for n in 1:nv(mg.graph)
         type = get_prop(mg,n,:type)

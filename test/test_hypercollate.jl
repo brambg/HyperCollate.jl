@@ -8,7 +8,7 @@ test_parser3:
 using Test
 
 @testset "hypercollate" begin
-    using HyperCollate
+    using HyperCollate, LightGraphs
     include("util.jl")
 
     xml = "<text><s><subst><del>Dit kwam van een</del><add>De</add></subst> te streng doorgedreven rationalisatie</s></text>"
@@ -17,6 +17,9 @@ using Test
     @test map(string_value,tokens) == ["<text>", "<s>", "<subst>", "<del>", "Dit kwam van een", "</del>", "<add>", "De", "</add>", "</subst>", " te streng doorgedreven rationalisatie", "</s>", "</text>"]
 
     g = to_graph(xml)
+    @show(g.graph)
+    ts = topological_sort_by_dfs(g)
+    @show(ts)
     dot = to_dot(g)
     expected="""
     digraph VariantGraph {

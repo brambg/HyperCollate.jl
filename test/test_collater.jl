@@ -34,6 +34,7 @@ using HyperCollate,MetaGraphs
 
     collate!(collation)
     @test collation.state == is_collated
+    @show(collation)
 end
 
 @testset "ranking" begin
@@ -42,6 +43,8 @@ end
     """
 
     vwg = to_graph(xml)
+    bfs = bfs_tree(vwg)
+    @show(bfs)
     r = ranking(vwg)
     @show(r)
     for v in keys(r.by_vertex)

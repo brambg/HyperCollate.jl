@@ -9,11 +9,11 @@ using MetaGraphs
 
 import Base.display
 
-function Base.display(mime::MIME"image/svg+xml", mg::MetaGraph)
+function Base.display(mime::MIME"image/svg+xml", mg::MetaDiGraph)
     _display_svg(mg)
 end
 
-function Base.display(mime::MIME"image/png", mg::MetaGraph)
+function Base.display(mime::MIME"image/png", mg::MetaDiGraph)
     _display_png(mg)
 end
 
@@ -31,6 +31,6 @@ function _display_png(x)
     rm(file)
 end
 
-show_svg(mg::MetaGraph) = display("image/svg+xml",mg)
+show_svg(mg::MetaDiGraph) = display("image/svg+xml",mg)
 
-show_png(mg::MetaGraph) = display("image/png",mg)
+show_png(mg::MetaDiGraph) = display("image/png",mg)
