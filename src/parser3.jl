@@ -185,4 +185,3 @@ function _metagraph_as_dot(mg::MetaDiGraph)
     """
     return dot
 end
-
