@@ -5,8 +5,6 @@ xml_preprocessor:
 - Date: 2019-03-21
 =#
 
-const _DEBUG = false
-
 isopendel(t::XMLToken) = isa(t,XMLStartElement) && t.name == "del"
 isclosedel(t::XMLToken) = isa(t,XMLEndElement) && t.name == "del"
 isopenadd(t::XMLToken) = isa(t,XMLStartElement) && t.name == "add"
@@ -21,78 +19,85 @@ ends_subst(t::XMLToken) = isa(t,TextToken) ? !isempty(strip(t.text)) : (t.name !
     _after_add
 end
 
+mutable struct SubstContext
+    buf::IOBuffer
+    state::SubstState
+    subst::Bool
+
+    SubstContext() = new(IOBuffer(),_normal,false)
+end
+
 function add_subst(xml::String)::String
-    outbuf = IOBuffer()
-    tmpbuf = IOBuffer()
-    state = _normal
-    subst = false
+    contexts = []
+    push!(contexts,SubstContext())
     for t in tokenize(xml)
-        _DEBUG && println("$state | $(string_value(t))")
-        if isopendel(t)
-            _DEBUG && println(1)
-            (state != _subst) && (state = _tentative_subst)
-            print(tmpbuf,string_value(t))
+        @debug("$(contexts[1].state) | $(string_value(t))")
+        if isopendel(t) && contexts[1].state != _after_del
+            @debug(1," push!")
+            pushfirst!(contexts,SubstContext())
+            (contexts[1].state != _subst) && (contexts[1].state = _tentative_subst)
+            print(contexts[1].buf,string_value(t))
 
         elseif isclosedel(t)
-            _DEBUG && println(2)
-            print(tmpbuf,string_value(t))
-            state = _after_del
+            @debug(2)
+            print(contexts[1].buf,string_value(t))
+            contexts[1].state = _after_del
 
-        elseif state == _after_del
+        elseif contexts[1].state == _after_del
             if ends_subst(t)
-                _DEBUG && println(3.1)
-                if subst
-                    print(outbuf, "<subst>", String(take!(tmpbuf)), "</subst>")
+                @debug(3.1)
+                outbuf = contexts[2].buf
+                if contexts[1].subst
+                    print(outbuf, "<subst>", String(take!(contexts[1].buf)), "</subst>")
                 else
-                    print(outbuf, String(take!(tmpbuf)))
+                    print(outbuf, String(take!(contexts[1].buf)))
                 end
                 print(outbuf, string_value(t))
-                state = _normal
-                subst = false
+#                 contexts[1].state = _normal
+#                 contexts[1].subst = false
+                deleteat!(contexts,1)
+                @debug("pop!")
             else
-                _DEBUG && println(3.2)
-                print(tmpbuf,string_value(t))
-                state = _subst
-                subst = true
+                @debug(3.2)
+                print(contexts[1].buf,string_value(t))
+                contexts[1].state = _subst
+                contexts[1].subst = true
             end
 
-        elseif state == _subst && iscloseadd(t)
-            _DEBUG && println(4)
-            print(tmpbuf,string_value(t))
-            state = _after_add
+        elseif contexts[1].state == _subst && iscloseadd(t)
+            @debug(4)
+            print(contexts[1].buf,string_value(t))
+            contexts[1].state = _after_add
 
-        elseif state == _after_add
+        elseif contexts[1].state == _after_add
             if ends_subst(t)
-                _DEBUG && println(5.1)
-                print(outbuf, "<subst>", String(take!(tmpbuf)), "</subst>")
-                print(outbuf, string_value(t))
-                state = _normal
-                subst = false
+                @debug(5.1)
+                while contexts[1].state == _after_add
+                    end_subst!(contexts)
+                    @debug("pop!")
+                end
+#                 @show(contexts[1].state)
+                print(contexts[1].buf, string_value(t))
             else
-                _DEBUG && println(5.2)
-                print(tmpbuf,string_value(t))
+                @debug(5.2)
+                print(contexts[1].buf,string_value(t))
             end
 
         else
-            _DEBUG && println(6)
-            if (state == _normal)
-                print(outbuf, String(take!(tmpbuf)))
-                print(outbuf, string_value(t))
+            if (contexts[1].state == _normal)
+                @debug(6.1)
+                print(contexts[1].buf, string_value(t))
             else
-                print(tmpbuf, string_value(t))
+                @debug(6.2)
+                print(contexts[1].buf, string_value(t))
             end
         end
     end
-    return strip(String(take!(outbuf)))
+#     @show(length(contexts))
+    return strip(String(take!(contexts[1].buf)))
 end
 
-#=
-state: :normal, :tentative_subst, :subst, :after_del, :after_add
-start in state normal
-if :normal && <del> -> :tentative_subst, store output in tmpbuf
-if </del> -> :after_del
-if :after_del && non-whitespace text -> :normal, add tmpbuf + text
-if :after_del && (whitespace text || <add> || <del>) -> :subst
-if :subst && </add> -> :after_add
-if :after_add 
-=#
+function end_subst!(contexts)
+    print(contexts[2].buf, "<subst>", String(take!(contexts[1].buf)), "</subst>")
+    deleteat!(contexts,1)
+end
