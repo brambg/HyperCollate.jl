@@ -19,7 +19,8 @@ module HyperCollate
         to_dot,
         string_value,
         Collation,add_witness!,collate!,needs_witness,ready_to_collate,is_collated,
-        ranking
+        ranking,
+        add_subst
 #         xp_parse,
 #         create_an_array_of_the_xml_nodes,
 #         convert_to_xml_blocks,
@@ -28,6 +29,7 @@ module HyperCollate
 
 #     include("xmlparser.jl")
     include("parser3.jl")
+    include("xml_preprocessor.jl")
     include("collater.jl")
 
 end
