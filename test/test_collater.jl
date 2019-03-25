@@ -13,13 +13,13 @@ using HyperCollate,MetaGraphs
 
     f_xml = """
     <text>
-        <s>Hoe zoet moet nochtans zijn dit <lb/><del>werven om</del><add>trachten naar</add> een vrouw,
-            de ongewisheid vóór de <lb/>liefelijke toestemming!</s>
+        <s>Hoe zoet moet nochtans zijn dit <subst><del>werven om</del><add>trachten naar</add></subst> een vrouw,
+            de ongewisheid vóór de liefelijke toestemming!</s>
     </text>
     """
     q_xml = """
     <text>
-        <s>Hoe zoet moet nochtans zijn dit <del>werven om</del><add>trachten naar</add> een <lb/>vrouw !
+        <s>Hoe zoet moet nochtans zijn dit <subst><del>werven om</del><add>trachten naar</add></subst> een vrouw !
             Die dagen van nerveuze verwachting vóór de liefelijke toestemming.</s>
     </text>
     """
