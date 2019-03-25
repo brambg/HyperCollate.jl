@@ -31,5 +31,6 @@ module HyperCollate
     include("parser3.jl")
     include("xml_preprocessor.jl")
     include("collater.jl")
+    include("display.jl")
 
 end
