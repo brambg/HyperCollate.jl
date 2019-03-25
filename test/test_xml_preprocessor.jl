@@ -9,6 +9,15 @@ using Test, HyperCollate
 
 test_subst_wrapping(xml::String, expected::String) = @test add_subst(xml) == expected
 
+macro debug_on()
+    return :(ENV["JULIA_DEBUG"] = "all")
+end
+
+macro debug_off()
+    return :(ENV["JULIA_DEBUG"] = "")
+end
+
+
 @testset "automatic subst wrapping" begin
     @testset "wrapping non-nested add/del in subst" begin
         @testset "hoe zoet..." begin
@@ -38,7 +47,7 @@ test_subst_wrapping(xml::String, expected::String) = @test add_subst(xml) == exp
 
         @testset "ignore whitespace between del/add" begin
             xml = "<x>bla1 <del>bla2</del>\n <add>bla3</add> bla4</x>"
-            expected = "<x>bla1 <subst><del>bla2</del>\n <add>bla3</add></subst> bla4</x>"
+            expected = "<x>bla1 <subst><del>bla2</del><add>bla3</add></subst> bla4</x>"
             test_subst_wrapping(xml,expected)
         end
 
@@ -51,28 +60,28 @@ test_subst_wrapping(xml::String, expected::String) = @test add_subst(xml) == exp
 
     @testset "wrapping nested add/del in subst" begin
         @testset "brulez 01r nested del" begin
+#             @debug_on()
             xml = """
             <xml><s>...weinig van pas komen
-            <del type="crossedOut" rend="grey pencil" hand="#RB" resp="#EB">zoo, o.m. in de                  sexueele opvoeding <lb/>van den troo<del type="crossedOut" rend="grey pencil" hand="#RB" resp="#EB">p</del><add place="supralinear" hand="#RB" rend="grey pencil" resp="#EB">n</add>o<add place="supralinear" rend="grey pencil" hand="#RB" resp="#EB">p</add>volger...</del></s></xml>
+            <del type="crossedOut" rend="grey pencil" hand="#RB" resp="#EB">zoo, o.m. in de sexueele opvoeding van den troo<del type="crossedOut" rend="grey pencil" hand="#RB" resp="#EB">p</del><add place="supralinear" hand="#RB" rend="grey pencil" resp="#EB">n</add>o<add place="supralinear" rend="grey pencil" hand="#RB" resp="#EB">p</add>volger...</del></s></xml>
             """
             expected = """
-            something...
-            """
+            <xml><s>...weinig van pas komen
+            <del>zoo, o.m. in de sexueele opvoeding van den troo<subst><del>p</del><add>n</add></subst>o<add>p</add>volger...</del></s></xml>"""
             test_subst_wrapping(xml,expected)
+#             @debug_off()
         end
 
         @testset "del/add nested in add" begin
             xml = "<x>bla1 <del>bla2</del>\n <add>bla3 <del>something</del><add>word</add></add> bla4</x>"
-            expected = "<x>bla1 <subst><del>bla2</del>\n <add>bla3 <subst><del>something</del><add>word</add></subst></add></subst>bla4</x>"
+            expected = "<x>bla1 <subst><del>bla2</del><add>bla3 <subst><del>something</del><add>word</add></subst></add></subst> bla4</x>"
             test_subst_wrapping(xml,expected)
         end
 
         @testset "del/add nested in solitary del" begin
-            ENV["JULIA_DEBUG"] = "all"
             xml = "<p>De te streng doorgedreven rationalisatie van zijn prinsenjeugd had dit <del>met <del>hem</del><add>zich</add></del> meegebracht.</p>"
             expected = "<p>De te streng doorgedreven rationalisatie van zijn prinsenjeugd had dit <del>met <subst><del>hem</del><add>zich</add></subst></del> meegebracht.</p>"
             test_subst_wrapping(xml,expected)
-            ENV["JULIA_DEBUG"] = ""
         end
 
     end

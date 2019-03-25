@@ -9,7 +9,7 @@ isopendel(t::XMLToken) = isa(t,XMLStartElement) && t.name == "del"
 isclosedel(t::XMLToken) = isa(t,XMLEndElement) && t.name == "del"
 isopenadd(t::XMLToken) = isa(t,XMLStartElement) && t.name == "add"
 iscloseadd(t::XMLToken) = isa(t,XMLEndElement) && t.name == "add"
-ends_subst(t::XMLToken) = isa(t,TextToken) ? !isempty(strip(t.text)) : (t.name != "del" && t.name != "add")
+ends_subst(t::XMLToken) = isa(t,TextToken) ? !isempty(strip(t.text)) : (isa(t,XMLStartElement) && (t.name != "del" && t.name != "add") || isa(t,XMLEndElement))
 
 @enum SubstState begin
     _normal
@@ -38,7 +38,7 @@ function add_subst(xml::String)::String
             (contexts[1].state != _subst) && (contexts[1].state = _tentative_subst)
             print(contexts[1].buf,string_value(t))
 
-        elseif isclosedel(t)
+        elseif contexts[1].state == _tentative_subst && isclosedel(t)
             @debug(2)
             print(contexts[1].buf,string_value(t))
             contexts[1].state = _after_del
@@ -59,7 +59,9 @@ function add_subst(xml::String)::String
                 @debug("pop!")
             else
                 @debug(3.2)
-                print(contexts[1].buf,string_value(t))
+                if !(isa(t,TextToken) && isempty(strip(t.text))) # ignore whitespace between subst elements
+                    print(contexts[1].buf,string_value(t))
+                end
                 contexts[1].state = _subst
                 contexts[1].subst = true
             end
@@ -78,6 +80,12 @@ function add_subst(xml::String)::String
                 end
 #                 @show(contexts[1].state)
                 print(contexts[1].buf, string_value(t))
+                if isclosedel(t)
+                    contexts[1].state = _after_del
+                end
+                if iscloseadd(t)
+                    contexts[1].state = _after_add
+                end
             else
                 @debug(5.2)
                 print(contexts[1].buf,string_value(t))
