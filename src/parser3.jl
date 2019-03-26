@@ -115,7 +115,7 @@ function grow_graph!(gb::GraphBuilder, texttoken::TextToken)
     return gb
 end
 
-function tokenize(xml::String)::Vector{XMLToken}
+function tokenize(xml::AbstractString)::Vector{XMLToken}
     tokens = []
     cbs = XPCallbacks()
     cbs.start_element = function(h, name, attrs)

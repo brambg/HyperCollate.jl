@@ -10,6 +10,7 @@ isclosedel(t::XMLToken) = isa(t,XMLEndElement) && t.name == "del"
 isopenadd(t::XMLToken) = isa(t,XMLStartElement) && t.name == "add"
 iscloseadd(t::XMLToken) = isa(t,XMLEndElement) && t.name == "add"
 ends_subst(t::XMLToken) = isa(t,TextToken) ? !isempty(strip(t.text)) : (isa(t,XMLStartElement) && (t.name != "del" && t.name != "add") || isa(t,XMLEndElement))
+is_whitespace(t::XMLToken) = isa(t,TextToken) && isempty(strip(t.text))
 
 @enum SubstState begin
     _normal
@@ -23,16 +24,20 @@ mutable struct SubstContext
     buf::IOBuffer
     state::SubstState
     subst::Bool
+    tail::String
 
-    SubstContext() = new(IOBuffer(),_normal,false)
+    SubstContext() = new(IOBuffer(),_normal,false,"")
 end
 
 function add_subst(xml::String)::String
     contexts = []
     push!(contexts,SubstContext())
-    for t in tokenize(xml)
+    tokens = tokenize(strip(xml))
+    ti = 1
+    while (ti<=length(tokens))
+        t = tokens[ti]
         @debug("$(contexts[1].state) | $(string_value(t))")
-        if isopendel(t) && contexts[1].state != _after_del
+        if isopendel(t) && contexts[1].state != _after_del && contexts[1].state != _after_add
             @debug(1," push!")
             pushfirst!(contexts,SubstContext())
             (contexts[1].state != _subst) && (contexts[1].state = _tentative_subst)
@@ -52,9 +57,7 @@ function add_subst(xml::String)::String
                 else
                     print(outbuf, String(take!(contexts[1].buf)))
                 end
-                print(outbuf, string_value(t))
-#                 contexts[1].state = _normal
-#                 contexts[1].subst = false
+                ti -= 1
                 deleteat!(contexts,1)
                 @debug("pop!")
             else
@@ -72,22 +75,17 @@ function add_subst(xml::String)::String
             contexts[1].state = _after_add
 
         elseif contexts[1].state == _after_add
-            if ends_subst(t)
+            if ends_subst(t) || isopendel(t)
                 @debug(5.1)
-                while contexts[1].state == _after_add
-                    end_subst!(contexts)
-                    @debug("pop!")
-                end
-#                 @show(contexts[1].state)
-                print(contexts[1].buf, string_value(t))
-                if isclosedel(t)
-                    contexts[1].state = _after_del
-                end
-                if iscloseadd(t)
-                    contexts[1].state = _after_add
-                end
-            else
+                print(contexts[2].buf, "<subst>", String(take!(contexts[1].buf)), "</subst>", contexts[1].tail)
+                ti -= 1
+                deleteat!(contexts,1)
+                @debug("pop!")
+            elseif is_whitespace(t)
                 @debug(5.2)
+                contexts[1].tail = t.text
+            else
+                @debug(5.3)
                 print(contexts[1].buf,string_value(t))
             end
 
@@ -100,12 +98,7 @@ function add_subst(xml::String)::String
                 print(contexts[1].buf, string_value(t))
             end
         end
+        ti += 1
     end
-#     @show(length(contexts))
     return strip(String(take!(contexts[1].buf)))
-end
-
-function end_subst!(contexts)
-    print(contexts[2].buf, "<subst>", String(take!(contexts[1].buf)), "</subst>")
-    deleteat!(contexts,1)
 end

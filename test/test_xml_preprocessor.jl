@@ -74,11 +74,13 @@ end
 
         @testset "brulez 01r nested del 2" begin
             @debug_on()
-            xml = """
-            <s>
-weinig van pas komen
+            xml = """<s>weinig van pas komen
 <del>,</del><add>:</add>
 <del>zoo, o.m. in de sexueele opvoeding van den troo<del>p</del><add>n</add>o<add>p</add>volger...</del>
+</s>"""
+            expected = """<s>weinig van pas komen
+<subst><del>,</del><add>:</add></subst>
+<del>zoo, o.m. in de sexueele opvoeding van den troo<subst><del>p</del><add>n</add></subst>o<add>p</add>volger...</del>
 </s>"""
             test_subst_wrapping(xml,expected)
             @debug_off()
