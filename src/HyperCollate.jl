@@ -20,7 +20,8 @@ module HyperCollate
         string_value,
         Collation,add_witness!,collate!,needs_witness,ready_to_collate,is_collated,
         ranking,
-        add_subst
+        add_subst,
+        show_svg,show_png
 #         xp_parse,
 #         create_an_array_of_the_xml_nodes,
 #         convert_to_xml_blocks,

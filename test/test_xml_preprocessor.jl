@@ -72,6 +72,18 @@ end
 #             @debug_off()
         end
 
+        @testset "brulez 01r nested del 2" begin
+            @debug_on()
+            xml = """
+            <s>
+weinig van pas komen
+<del>,</del><add>:</add>
+<del>zoo, o.m. in de sexueele opvoeding van den troo<del>p</del><add>n</add>o<add>p</add>volger...</del>
+</s>"""
+            test_subst_wrapping(xml,expected)
+            @debug_off()
+        end
+
         @testset "del/add nested in add" begin
             xml = "<x>bla1 <del>bla2</del>\n <add>bla3 <del>something</del><add>word</add></add> bla4</x>"
             expected = "<x>bla1 <subst><del>bla2</del><add>bla3 <subst><del>something</del><add>word</add></subst></add></subst> bla4</x>"
