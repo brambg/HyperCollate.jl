@@ -72,9 +72,7 @@ function grow_graph!(gb::GraphBuilder, startelement::XMLStartElement)
     return gb
 end
 
-function parent_is_divergence_element(gb::GraphBuilder)
-    return !isempty(gb.context.open_tags) && is_divergence_element(gb.context.open_tags[end])
-end
+parent_is_divergence_element(gb::GraphBuilder) = !isempty(gb.context.open_tags) && is_divergence_element(gb.context.open_tags[end])
 
 function grow_graph!(gb::GraphBuilder, endelement::XMLEndElement)
 #     @show(gb)
@@ -137,7 +135,10 @@ end
 
 to_graph(xml::String) = reduce(grow_graph!, tokenize(xml); init = GraphBuilder()).metagraph
 
-string_value(t::XMLStartElement) = "<$(t.name)>"
+function string_value(t::XMLStartElement)
+    attribs = isempty(t.attrs) ? "" : " " * join( ["$k=\"$(t.attrs[k])\"" for k in keys(t.attrs)], " ")
+    return "<$(t.name)$attribs>"
+end
 
 string_value(t::XMLEndElement) = "</$(t.name)>"
 

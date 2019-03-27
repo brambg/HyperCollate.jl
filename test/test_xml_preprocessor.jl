@@ -66,9 +66,10 @@ end
             <del type="crossedOut" rend="grey pencil" hand="#RB" resp="#EB">zoo, o.m. in de sexueele opvoeding van den troo<del type="crossedOut" rend="grey pencil" hand="#RB" resp="#EB">p</del><add place="supralinear" hand="#RB" rend="grey pencil" resp="#EB">n</add>o<add place="supralinear" rend="grey pencil" hand="#RB" resp="#EB">p</add>volger...</del></s></xml>
             """
             expected = """
-            <xml><s>...weinig van pas komen
-            <del>zoo, o.m. in de sexueele opvoeding van den troo<subst><del>p</del><add>n</add></subst>o<add>p</add>volger...</del></s></xml>"""
+<xml><s>...weinig van pas komen
+<del hand="#RB" rend="grey pencil" resp="#EB" type="crossedOut">zoo, o.m. in de sexueele opvoeding van den troo<subst><del hand="#RB" rend="grey pencil" resp="#EB" type="crossedOut">p</del><add place="supralinear" hand="#RB" rend="grey pencil" resp="#EB">n</add></subst>o<add place="supralinear" hand="#RB" rend="grey pencil" resp="#EB">p</add>volger...</del></s></xml>"""
             test_subst_wrapping(xml,expected)
+#             println(add_subst(xml))
 #             @debug_off()
         end
 
