@@ -41,6 +41,7 @@ end
 @enum(VertexType,TEXTNODE,DIVERGENCE,CONVERGENCE)
 
 is_divergence_element(name::String) = name in ["subst", "choice", "app"]
+is_optional_element(name::String) = name in ["del", "add"]
 
 function add_divergence_node!(gb::GraphBuilder)
     add_vertices!(gb.metagraph.graph,1)
@@ -59,14 +60,15 @@ end
 function grow_graph!(gb::GraphBuilder, startelement::XMLStartElement)
 #     @show(gb)
 #     @show(startelement)
-    push!(gb.context.open_tags,startelement.name)
-    if (is_divergence_element(startelement.name))
+#     @show(startelement.name,is_optional_element(startelement.name),!parent_is_divergence_element(gb))
+    if (is_divergence_element(startelement.name)) || (is_optional_element(startelement.name) && !parent_is_divergence_element(gb))
         v = add_divergence_node!(gb)
         push!(gb.context.divergencenodes,v)
         add_edge!(gb.metagraph.graph,gb.context.last_unconnected_node,v)
         gb.context.last_unconnected_node = v
         gb.context.branch_ends[v] = []
     end
+    push!(gb.context.open_tags,startelement.name)
 
 #     println()
     return gb
@@ -79,11 +81,15 @@ function grow_graph!(gb::GraphBuilder, endelement::XMLEndElement)
 #     @show(endelement)
 
     pop!(gb.context.open_tags)
-    if (is_divergence_element(endelement.name))
+    if (is_divergence_element(endelement.name)) || (is_optional_element(endelement.name) && !parent_is_divergence_element(gb))
         v = add_convergence_node!(gb)
         variation = pop!(gb.context.divergencenodes)
         for n in gb.context.branch_ends[variation]
-           add_edge!(gb.metagraph.graph,n,v)
+            add_edge!(gb.metagraph.graph,n,v)
+        end
+        if is_optional_element(endelement.name)
+            add_edge!(gb.metagraph.graph,gb.context.last_unconnected_node,v)
+            add_edge!(gb.metagraph.graph,variation,v)
         end
         gb.context.last_unconnected_node = v
 
