@@ -34,7 +34,8 @@ function add_subst(xml::String)::String
     push!(contexts,SubstContext())
     tokens = tokenize(strip(xml))
     ti = 1
-    while (ti<=length(tokens))
+    max=length(tokens)
+    while ti<=max
         t = tokens[ti]
         @debug("$(contexts[1].state) | $(string_value(t))")
         if isopendel(t) && contexts[1].state != _after_del && contexts[1].state != _after_add
@@ -62,9 +63,7 @@ function add_subst(xml::String)::String
                 @debug("pop!")
             else
                 @debug(3.2)
-                if !(isa(t,TextToken) && isempty(strip(t.text))) # ignore whitespace between subst elements
-                    print(contexts[1].buf,string_value(t))
-                end
+                print(contexts[1].buf,string_value(t))
                 contexts[1].state = _subst
                 contexts[1].subst = true
             end
@@ -89,14 +88,16 @@ function add_subst(xml::String)::String
                 print(contexts[1].buf,string_value(t))
             end
 
+        elseif contexts[1].state == _subst && ti == max
+            @debug(6)
+            print(contexts[2].buf, String(take!(contexts[1].buf)), contexts[1].tail)
+            ti -= 1
+            deleteat!(contexts,1)
+            @debug("pop!")
+
         else
-            if (contexts[1].state == _normal)
-                @debug(6.1)
-                print(contexts[1].buf, string_value(t))
-            else
-                @debug(6.2)
-                print(contexts[1].buf, string_value(t))
-            end
+            @debug(7)
+            print(contexts[1].buf, string_value(t))
         end
         ti += 1
     end
