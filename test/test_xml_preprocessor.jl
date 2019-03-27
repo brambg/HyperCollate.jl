@@ -45,11 +45,11 @@ end
             test_subst_wrapping(xml,expected)
         end
 
-#         @testset "ignore whitespace between del/add" begin
-#             xml = "<x>bla1 <del>bla2</del>\n <add>bla3</add> bla4</x>"
-#             expected = "<x>bla1 <subst><del>bla2</del><add>bla3</add></subst> bla4</x>"
-#             test_subst_wrapping(xml,expected)
-#         end
+        @testset "ignore whitespace between del/add" begin
+            xml = "<x>bla1 <del>bla2</del>\n <add>bla3</add> bla4</x>"
+            expected = "<x>bla1 <subst><del>bla2</del><add>bla3</add></subst> bla4</x>"
+            test_subst_wrapping(xml,expected)
+        end
 
         @testset "wrap del/del/add combo" begin
             xml = "<x>something <del>not this</del><del>or this</del><add>but this</add> something else</x>"
@@ -81,15 +81,14 @@ end
 </s>"""
             expected = """<s>weinig van pas komen
 <subst><del>,</del><add>:</add></subst>
-<del>zoo, o.m. in de sexueele opvoeding van den troo<subst><del>p</del><add>n</add></subst>o<add>p</add>volger...</del>
-</s>"""
+<del>zoo, o.m. in de sexueele opvoeding van den troo<subst><del>p</del><add>n</add></subst>o<add>p</add>volger...</del></s>"""
             test_subst_wrapping(xml,expected)
 #             @debug_off()
         end
 
         @testset "del/add nested in add" begin
             xml = "<x>bla1 <del>bla2</del>\n <add>bla3 <del>something</del><add>word</add></add> bla4</x>"
-            expected = "<x>bla1 <subst><del>bla2</del>\n <add>bla3 <subst><del>something</del><add>word</add></subst></add></subst> bla4</x>"
+            expected = "<x>bla1 <subst><del>bla2</del><add>bla3 <subst><del>something</del><add>word</add></subst></add></subst> bla4</x>"
             test_subst_wrapping(xml,expected)
         end
 

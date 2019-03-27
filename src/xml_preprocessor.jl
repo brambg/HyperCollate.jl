@@ -63,7 +63,9 @@ function add_subst(xml::String)::String
                 @debug("pop!")
             else
                 @debug(3.2)
-                print(contexts[1].buf,string_value(t))
+                if !(isa(t,TextToken) && isempty(strip(t.text))) # ignore whitespace tokens between subst elements
+                    print(contexts[1].buf,string_value(t))
+                end
                 contexts[1].state = _subst
                 contexts[1].subst = true
             end
