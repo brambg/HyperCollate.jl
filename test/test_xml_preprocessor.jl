@@ -98,6 +98,14 @@ end
             test_subst_wrapping(xml,expected)
         end
 
+        @testset "Old Miss: del in add" begin
+            @debug_on()
+            xml = "<s>Old Miss <del>Hare</del><add><del><unclear>Scovell</unclear></del></add><add><del>McGlone</del><add>McGlone</add></add> always sings at this hour.</s>"
+            expected = "<s>Old Miss <subst><del>Hare</del><add><del><unclear>Scovell</unclear></del></add><add><subst><del>McGlone</del><add>McGlone</add></subst></add></subst> always sings at this hour.</s>"
+            test_subst_wrapping(xml,expected)
+            @debug_off()
+        end
+
     end
 
     # @testset "handling milestones" begin
