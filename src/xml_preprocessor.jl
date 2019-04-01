@@ -85,8 +85,12 @@ function add_subst(xml::String)::String
             elseif is_whitespace(t)
                 @debug(5.2)
                 contexts[1].tail = t.text
-            else
+            elseif isopenadd(t)
                 @debug(5.3)
+                print(contexts[1].buf,string_value(t))
+                contexts[1].state = _subst
+            else
+                @debug(5.4)
                 print(contexts[1].buf,string_value(t))
             end
 

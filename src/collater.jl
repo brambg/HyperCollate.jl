@@ -7,8 +7,6 @@ collater:
 
 using MetaGraphs,Combinatorics
 
-const DEBUG = true
-
 @enum(CollationState,
      needs_witness, ready_to_collate, is_collated
 )
@@ -144,14 +142,14 @@ function collate!(collation::Collation)
     rankings = [ranking(wg) for wg in witnesses]
 
     matches = potential_matches(witnesses,rankings)
-    DEBUG && for m in matches
+    @debug for m in matches
         @show(m)
     end
     collated_vertex_map = Dict{Integer,Integer}()
     first = popfirst!(witnesses)
     initialize(collation.graph,collated_vertex_map,first)
     matches_sorted_by_rank_per_witness = sort_and_filter_matches_by_witness(matches, sigils)
-    DEBUG && @show(matches_sorted_by_rank_per_witness)
+    @debug(matches_sorted_by_rank_per_witness)
     for s in sigils
         sorted_matches = matches_sorted_by_rank_per_witness[s]
         witness = collation.variantwitness_graphs[s]
@@ -259,9 +257,9 @@ function filter_and_sort_matches_for_witness(matches,sigil)
         end
         return rank1 < rank2
     end
-    DEBUG && @show(matches)
+    @debug(matches)
     filtered_matches = [m for m in matches if has_witness(m,sigil)]
-    DEBUG && @show(filtered_matches)
+    @debug(filtered_matches)
     return collect(sort(filtered_matches, lt=my_isless))
 end
 

@@ -8,49 +8,54 @@ test_collater:
 using Test
 using HyperCollate,MetaGraphs
 
+include("util.jl")
+
 @testset "collater" begin
-    include("util.jl")
+    @testset "collating 2 xml texts" begin
+        include("util.jl")
 
-    f_xml = """
-    <text>
-        <s>Hoe zoet moet nochtans zijn dit <subst><del>werven om</del><add>trachten naar</add></subst> een vrouw,
-            de ongewisheid vóór de liefelijke toestemming!</s>
-    </text>
-    """
-    q_xml = """
-    <text>
-        <s>Hoe zoet moet nochtans zijn dit <subst><del>werven om</del><add>trachten naar</add></subst> een vrouw !
-            Die dagen van nerveuze verwachting vóór de liefelijke toestemming.</s>
-    </text>
-    """
-    collation = Collation()
-    @test collation.state == needs_witness
+        f_xml = """
+        <text>
+            <s>Hoe zoet moet nochtans zijn dit <subst><del>werven om</del><add>trachten naar</add></subst> een vrouw,
+                de ongewisheid vóór de liefelijke toestemming!</s>
+        </text>
+        """
+        q_xml = """
+        <text>
+            <s>Hoe zoet moet nochtans zijn dit <subst><del>werven om</del><add>trachten naar</add></subst> een vrouw !
+                Die dagen van nerveuze verwachting vóór de liefelijke toestemming.</s>
+        </text>
+        """
+        collation = Collation()
+        @test collation.state == needs_witness
 
-    add_witness!(collation,"F",f_xml)
-    @test collation.state == needs_witness
+        add_witness!(collation,"F",f_xml)
+        @test collation.state == needs_witness
 
-    add_witness!(collation,"Q",f_xml)
-    @test collation.state == ready_to_collate
+        add_witness!(collation,"Q",f_xml)
+        @test collation.state == ready_to_collate
 
-    collate!(collation)
-    @test collation.state == is_collated
-    @show(collation)
-    
-end
-
-@testset "ranking" begin
-    xml = """
-    <text><s><subst><del>Dit kwam van een</del><add>De</add></subst> te streng doorgedreven rationalisatie</s></text>
-    """
-
-    vwg = to_graph(xml)
-    r = ranking(vwg)
-    @show(r)
-    for v in keys(r.by_vertex)
-        str = get_prop(vwg,v,:text)
-        println("$str : $(r.by_vertex[v])")
+        collate!(collation)
+        @test collation.state == is_collated
+        @debug(collation)
+        dot = to_dot(collation.graph)
+        _print_dot(dot)
     end
-    for rank in sort(collect(keys(r.by_rank)))
-        println("$rank : $(r.by_rank[rank])")
+
+    @testset "ranking" begin
+        xml = """
+        <text><s><subst><del>Dit kwam van een</del><add>De</add></subst> te streng doorgedreven rationalisatie</s></text>
+        """
+
+        vwg = to_graph(xml)
+        r = ranking(vwg)
+        for v in keys(r.by_vertex)
+            str = get_prop(vwg,v,:text)
+            @debug("$str : $(r.by_vertex[v])")
+        end
+        for rank in sort(collect(keys(r.by_rank)))
+            @debug("$rank : $(r.by_rank[rank])")
+        end
     end
+
 end
