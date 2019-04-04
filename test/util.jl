@@ -5,6 +5,14 @@ util:
 - Date: 2019-01-24
 =#
 
+macro debug_on()
+    return :(ENV["JULIA_DEBUG"] = "all")
+end
+
+macro debug_off()
+    return :(ENV["JULIA_DEBUG"] = "")
+end
+
 function _test_normalized_strings_are_equal(string1::String, string2::String)
     n1 = _normalize(string1)
     n2 = _normalize(string2)

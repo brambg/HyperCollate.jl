@@ -126,7 +126,6 @@ end
 
 lowest_rank_for_witnesses_other_than(m::Match, s::String) = minimum([p[2] for p in m.ranking_map if p[1] != s])
 
-
 mutable struct Ranking
     by_vertex::Dict{Integer,Integer}
     by_rank::Dict{Integer,Set{Integer}}
@@ -142,14 +141,14 @@ function collate!(collation::Collation)
     rankings = [ranking(wg) for wg in witnesses]
 
     matches = potential_matches(witnesses,rankings)
-    @debug for m in matches
-        @show(m)
-    end
+#     @debug for m in matches
+#         @show(m)
+#     end
     collated_vertex_map = Dict{Integer,Integer}()
     first = popfirst!(witnesses)
     initialize(collation.graph,collated_vertex_map,first)
     matches_sorted_by_rank_per_witness = sort_and_filter_matches_by_witness(matches, sigils)
-    @debug(matches_sorted_by_rank_per_witness)
+    print_matches_sorted_by_rank_per_witness(matches_sorted_by_rank_per_witness,collation)
     for s in sigils
         sorted_matches = matches_sorted_by_rank_per_witness[s]
         witness = collation.variantwitness_graphs[s]
@@ -182,10 +181,12 @@ function match!(all_potential_matches, vertex_to_match, witness1, witness2, rank
     sigil2 = get_sigil(witness2)
     for v1 in traversal1
         text1 = get_prop(witness1,v1,:text)
+        type1 = get_prop(witness1,v1,:type)
         for v2 in traversal2
             text2 = get_prop(witness2,v2,:text)
+            type2 = get_prop(witness2,v2,:type)
 #             println("$sigil1:$v1:$text1 == $sigil2:$v2:$text2 ?")
-            if text1 == text2
+            if text1 == text2 && type1 == type2 == TEXTNODE
                 match = Match(sigil1, v1, sigil2, v2)
                 set_rank!(match, sigil1, apply(ranking1,v1))
                 set_rank!(match, sigil2, apply(ranking2,v2))
@@ -257,15 +258,16 @@ function filter_and_sort_matches_for_witness(matches,sigil)
         end
         return rank1 < rank2
     end
-    @debug(matches)
+#     println("matches ($(length(matches)))")
+#     display_matches(matches)
     filtered_matches = [m for m in matches if has_witness(m,sigil)]
-    @debug(filtered_matches)
+#     println("filtered matches ($(length(filtered_matches)))")
+#     display_matches(filtered_matches)
     return collect(sort(filtered_matches, lt=my_isless))
 end
 
 function add_collation_node!(collation_graph,collated_vertex_map,v,witnessgraph)
     if !haskey(collated_vertex_map,v)
-
 
 #       TextNode collationNode = collationGraph.addTextNodeWithTokens(tokenVertex.getToken());
 #       collationNode.addBranchPath(tokenVertex.getSigil(), tokenVertex.getBranchPath());
@@ -278,9 +280,40 @@ end
 function collate(collation_graph::CollationGraph,witness,sorted_matches,collated_vertex_map)
     base_ranking = rank(collation_graph)
 
-#     sigils = collation_graph.sigils
-#     filtered_matches = filter(m -> !isempty(intersect(sigils(m),sigils)),sorted_matches)
     p(m::Match) = !isempty(sigils(m))
     filtered_matches = filter(p ,sorted_matches)
     witnesssigil = get_sigil(witness)
+    push!(collation_graph.sigils,witnesssigil)
+    collated_matches = get_collated_matches(collated_vertex_map,filtered_matches,witnesssigil)
+    rank_adjusted = [adjust_rank(m, base_ranking) for m in collated_matches]
+    match_list = unique(rank_adjusted)
+    optimal_match_list = get_optimal_match_list(match_list)
+
+end
+
+function display_matches(matches,collation)
+    ms = []
+    for m in matches
+        sigils=sort(collect(keys(m.witness_vertex_map)))
+        w = []
+        for s in sigils
+            vertex = m.witness_vertex_map[s]
+            text = get_prop(collation.variantwitness_graphs[s],vertex,:text)
+            text = replace(text, r"\s+"=>" ")
+            rank = m.ranking_map[s]
+            push!(w,"$s:$rank:$vertex:'$text'")
+        end
+        match_string = join(sort(w),",\t")
+        push!(ms,match_string)
+    end
+#     println(join(sort(ms),"\n"))
+    println(join(ms,"\n"))
+end
+
+function print_matches_sorted_by_rank_per_witness(matches_sorted_by_rank_per_witness,collation)
+    sigils=sort(collect(keys(matches_sorted_by_rank_per_witness)))
+    for s in sigils
+        println(s)
+        display_matches(matches_sorted_by_rank_per_witness[s],collation)
+    end
 end
