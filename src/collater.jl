@@ -443,6 +443,7 @@ function collate(collation_graph::CollationGraph,witness,sorted_matches,collated
     rank_adjusted = [adjust_rank(m, base_ranking) for m in collated_matches]
     match_list = unique(rank_adjusted)
     optimal_match_list = get_optimal_match_list(match_list)
+
 end
 
 function adjust_rank(m::CollatedMatch, base_ranking::CollationGraphRanking)
@@ -506,4 +507,9 @@ function _debug_metagraph(mg::MetaDiGraph)
         println("$e ", props(mg,e))
     end
     println()
+end
+
+function get_optimal_match_list(match_list)
+    # TODO: use a-star to find the optimal set of matches
+    return match_list
 end
