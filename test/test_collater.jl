@@ -31,9 +31,11 @@ include("util.jl")
 
         add_witness!(collation,"F",f_xml)
         @test collation.state == needs_witness
+        _print_dot(to_dot(to_graph(f_xml)))
 
         add_witness!(collation,"Q",f_xml)
         @test collation.state == ready_to_collate
+        _print_dot(to_dot(to_graph(q_xml)))
 
         collate!(collation)
         @test collation.state == is_collated
@@ -52,9 +54,11 @@ include("util.jl")
 
         add_witness!(collation,"F",f_xml)
         @test collation.state == needs_witness
+        _print_dot(to_dot(to_graph(f_xml)))
 
         add_witness!(collation,"Q",f_xml)
         @test collation.state == ready_to_collate
+        _print_dot(to_dot(to_graph(q_xml)))
 
         collate!(collation)
         @test collation.state == is_collated
