@@ -170,7 +170,7 @@ function _metagraph_as_dot(mg::MetaDiGraph)
     for n in 1:nv(mg.graph)
         type = get_prop(mg,n,:type)
         if (type == TEXTNODE)
-            text = get_prop(mg,n,:text)
+            text = replace(get_prop(mg,n,:text),r"\s+" => " ")
             node_def = """v$n[shape=box;label="$text"]"""
         else
             node_def = """v$n[shape=circle;width=0.05;label=""]"""

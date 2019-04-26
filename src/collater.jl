@@ -50,8 +50,8 @@ function _collationgraph_as_dot(cg::CollationGraph)
     mg = cg.graph
     vertices_buf = IOBuffer()
     for n in 1:nv(mg)
-        type = get_prop(mg,n,:type)
-        if (type == TEXTNODE)
+#         type = get_prop(mg,n,:type)
+        if has_prop(mg,n,:text)
             text = get_prop(mg,n,:text)
             vertex_def = """v$n[shape=box;label="$text"]"""
         else
@@ -63,7 +63,8 @@ function _collationgraph_as_dot(cg::CollationGraph)
 
     edges_buf = IOBuffer()
     for e in edges(mg)
-        edge_def = """v$(e.src) -> v$(e.dst)"""
+        label = has_prop(mg,e,:sigils) ? join(get_prop(mg,e,:sigils),",") : ""
+        edge_def = """v$(e.src) -> v$(e.dst) [label=\"$label\"]"""
         println(edges_buf,edge_def)
     end
     edgesstring = String(take!(edges_buf))
@@ -202,15 +203,16 @@ function collate!(collation::Collation)
 #     @debug for m in matches
 #         @show(m)
 #     end
-    collated_vertex_map = Dict{Integer,Integer}()
+    collated_vertex_map = Dict{String,Dict{Integer,Integer}}()
     first = popfirst!(witnesses)
-    initialize(collation.graph,collated_vertex_map,first)
+    delete!(sigils,get_sigil(first))
+    initialize(collation,collated_vertex_map,first)
     matches_sorted_by_rank_per_witness = sort_and_filter_matches_by_witness(matches, sigils)
     print_matches_sorted_by_rank_per_witness(matches_sorted_by_rank_per_witness,collation)
     for s in sigils
         sorted_matches = matches_sorted_by_rank_per_witness[s]
         witness = collation.variantwitness_graphs[s]
-        collate(collation.graph,witness,sorted_matches,collated_vertex_map)
+        collate!(collation,witness,sorted_matches,collated_vertex_map)
     end
     collation.state = is_collated
     return collation
@@ -284,16 +286,16 @@ function ranking(variantwitness_graph::MetaDiGraph)
     return ranking
 end
 
-function initialize(collation_graph, collated_vertex_map, witnessgraph)
+function initialize(collation::Collation, collated_vertex_map, witnessgraph)
     sigil = get_sigil(witnessgraph)
-    push!(collation_graph.sigils,sigil)
+    push!(collation.graph.sigils,sigil)
     for wtn in [x for x in vertices(witnessgraph) if get_prop(witnessgraph,x,:type) == TEXTNODE]
-        add_collation_vertex!(collation_graph,collated_vertex_map,wtn,witnessgraph)
+        add_collation_vertex!(collation.graph,collated_vertex_map,wtn,witnessgraph)
     end
     _debug_metagraph(witnessgraph)
-    _debug_collationgraph(collation_graph)
-    add_edges!(collation_graph, collated_vertex_map, witnessgraph);
-    _debug_collationgraph(collation_graph)
+    _debug_collationgraph(collation.graph)
+    add_edges!(collation, collated_vertex_map);
+    _debug_collationgraph(collation.graph)
 end
 
 function first_matching_edge(cg::CollationGraph,f)
@@ -301,64 +303,68 @@ function first_matching_edge(cg::CollationGraph,f)
     return next == nothing ? nothing : next[1]
 end
 
-function add_edges!(cg::CollationGraph,collated_vertex_map,witnessgraph)
-    @show(collated_vertex_map)
-    sigil = get_sigil(witnessgraph)
-    for tv in keys(collated_vertex_map)
-#         @show(tv)
-        incoming = incoming_text_vertices(witnessgraph,tv)
-        for itv in incoming
-#             @show(itv)
-            source = collated_vertex_map[itv]
-            dest = collated_vertex_map[tv]
-            existing_target_vertices = outneighbors(cg.graph,source)
-            if (dest in existing_target_vertices)
-                isrelevant(e) = e.src==source && e.dst==dest
-                edge = first_matching_edge(cg,isrelevant)
+function add_edges!(collation::Collation,collated_vertex_map)
+#     @show(collated_vertex_map)
+    cg = collation.graph
+    for sigil in keys(collated_vertex_map)
+        witnessgraph=collation.variantwitness_graphs[sigil]
+        for tv in keys(collated_vertex_map[sigil])
+    #         @show(tv)
+            incoming = incoming_text_vertices(witnessgraph,tv)
+            for itv in incoming
+    #             @show(itv)
+                source = collated_vertex_map[sigil][itv]
+                dest = collated_vertex_map[sigil][tv]
+                existing_target_vertices = outneighbors(cg.graph,source)
+                if (dest in existing_target_vertices)
+                    isrelevant(e) = e.src==source && e.dst==dest
+                    edge = first_matching_edge(cg,isrelevant)
+                    sigils = get_prop(cg.graph,edge,:sigils)
+                    push!(sigils,sigil)
+                    set_prop!(cg.graph,edge,:sigils,sigils)
+                else
+                    sigils = Set{String}()
+                    push!(sigils,sigil)
+                    add_edge!(cg.graph,source,dest,:sigils,sigils)
+                end
+            end
+        end
+
+        head_text_vertices = get_prop(witnessgraph,1,:type) == TEXTNODE ? [1] : outgoing_text_vertices(witnessgraph,1)
+    #     @show(head_text_vertices)
+        for tv in head_text_vertices
+            destination = collated_vertex_map[sigil][tv]
+            isrelevant(e) = e.src==cg.startvertex && e.dst==destination
+            edge = first_matching_edge(cg,isrelevant)
+            if edge != nothing
                 sigils = get_prop(cg.graph,edge,:sigils)
                 push!(sigils,sigil)
                 set_prop!(cg.graph,edge,:sigils,sigils)
             else
                 sigils = Set{String}()
                 push!(sigils,sigil)
-                add_edge!(cg.graph,source,dest,:sigils,sigils)
+                add_edge!(cg.graph,cg.startvertex,destination,:sigils,sigils)
+            end
+        end
+
+        last = nv(witnessgraph)
+        tail_text_vertices = get_prop(witnessgraph,last,:type) == TEXTNODE ? [last] : incoming_text_vertices(witnessgraph,nv(witnessgraph))
+    #     @show(tail_text_vertices)
+        for tv in tail_text_vertices
+            source = collated_vertex_map[sigil][tv]
+            isrelevant(e) = e.src==source && e.dst==cg.endvertex
+            edge = first_matching_edge(cg,isrelevant)
+            if edge != nothing
+                sigils = get_prop(cg.graph,edge,:sigils)
+                push!(sigils,sigil)
+                set_prop!(cg.graph,edge,:sigils,sigils)
+            else
+                sigils = Set{String}()
+                push!(sigils,sigil)
+                add_edge!(cg.graph,source,cg.endvertex,:sigils,sigils)
             end
         end
     end
-    head_text_vertices = get_prop(witnessgraph,1,:type) == TEXTNODE ? [1] : outgoing_text_vertices(witnessgraph,1)
-    @show(head_text_vertices)
-    for tv in head_text_vertices
-        destination = collated_vertex_map[tv]
-        isrelevant(e) = e.src==cg.startvertex && e.dst==destination
-        edge = first_matching_edge(cg,isrelevant)
-        if edge != nothing
-            sigils = get_prop(cg.graph,edge,:sigils)
-            push!(sigils,sigil)
-            set_prop!(cg.graph,edge,:sigils,sigils)
-        else
-            sigils = Set{String}()
-            push!(sigils,sigil)
-            add_edge!(cg.graph,cg.startvertex,destination,:sigils,sigils)
-        end
-    end
-    last = nv(witnessgraph)
-    tail_text_vertices = get_prop(witnessgraph,last,:type) == TEXTNODE ? [last] : incoming_text_vertices(witnessgraph,nv(witnessgraph))
-    @show(tail_text_vertices)
-    for tv in tail_text_vertices
-        source = collated_vertex_map[tv]
-        isrelevant(e) = e.src==source && e.dst==cg.endvertex
-        edge = first_matching_edge(cg,isrelevant)
-        if edge != nothing
-            sigils = get_prop(cg.graph,edge,:sigils)
-            push!(sigils,sigil)
-            set_prop!(cg.graph,edge,:sigils,sigils)
-        else
-            sigils = Set{String}()
-            push!(sigils,sigil)
-            add_edge!(cg.graph,source,cg.endvertex,:sigils,sigils)
-        end
-    end
-
 end
 
 function incoming_text_vertices(g::MetaDiGraph,v::Int)
@@ -417,11 +423,15 @@ function filter_and_sort_matches_for_witness(matches,sigil)
 end
 
 function add_collation_vertex!(collation_graph::CollationGraph,collated_vertex_map,v::Int,witnessgraph)
-    if !haskey(collated_vertex_map,v)
+    sigil = get_sigil(witnessgraph)
+    if !haskey(collated_vertex_map,sigil)
+        collated_vertex_map[sigil] = Dict{Int,Int}()
+    end
+    if !haskey(collated_vertex_map[sigil],v)
         text = get_prop(witnessgraph,v,:text)
         collation_vertex = add_text_vertex!(collation_graph,text)
 #       collationNode.addBranchPath(tokenVertex.getSigil(), tokenVertex.getBranchPath());
-        collated_vertex_map[v] = collation_vertex
+        collated_vertex_map[sigil][v] = collation_vertex
 #       addMarkupHyperEdges(collationGraph, witnessGraph, markupNodeIndex, tokenVertex, collationNode);
     end
 end
@@ -433,17 +443,28 @@ function add_text_vertex!(cg::CollationGraph,text::String)
     return v
 end
 
-function collate(collation_graph::CollationGraph,witness,sorted_matches,collated_vertex_map)
-    base_ranking = CollationGraphRanking(collation_graph)
+function collate!(collation::Collation,witness,sorted_matches,collated_vertex_map)
+    base_ranking = CollationGraphRanking(collation.graph)
     p(m::Match) = !isempty(get_sigils(m))
     filtered_matches = filter(p ,sorted_matches)
     witnesssigil = get_sigil(witness)
-    push!(collation_graph.sigils,witnesssigil)
+    push!(collation.graph.sigils,witnesssigil)
     collated_matches = get_collated_matches(collated_vertex_map,filtered_matches,witnesssigil)
     rank_adjusted = [adjust_rank(m, base_ranking) for m in collated_matches]
     match_list = unique(rank_adjusted)
     optimal_match_list = get_optimal_match_list(match_list)
-
+    witnessiterator = collect(vertices(witness))
+    first = iterate(witnessiterator)[1]
+    while !isempty(optimal_match_list)
+        match = popfirst!(optimal_match_list)
+        wv = match.witness_vertex
+        advance_witness(collation.graph,collated_vertex_map,witnessiterator,wv,witness)
+        cv = match.collated_vertex
+        text = get_prop(witness,wv,:text)
+        add_token!(collation.graph,cv,text)
+        collated_vertex_map[witnesssigil][wv]=cv
+    end
+    add_edges!(collation,collated_vertex_map)
 end
 
 function adjust_rank(m::CollatedMatch, base_ranking::CollationGraphRanking)
@@ -452,17 +473,60 @@ function adjust_rank(m::CollatedMatch, base_ranking::CollationGraphRanking)
     return m
 end
 
+function advance_witness(collation_graph,collated_vertex_map,witnessiterator,wv,witness)
+    if !isempty(witnessiterator)
+        next = popfirst!(witnessiterator)
+        @show(next)
+        @show(witnessiterator)
+        while !isempty(witnessiterator) && next != wv
+            add_collation_vertex!(collation_graph,collated_vertex_map,next,witness)
+            next = popfirst!(witnessiterator)
+        end
+    end
+end
+
+function add_token!(collation_graph,cv,text)
+    tokens = has_prop(collation_graph.graph,cv,:tokens) ? get_prop(collation_graph.graph,cv,:tokens) : Vector{String}()
+    push!(tokens,text)
+    set_prop!(collation_graph.graph,cv,:tokens,tokens)
+end
+
+# function add_edges!(collation_graph,collated_vertex_map)
+#     for tv in keys(collated_vertex_map)
+#         for itv in inneighbors(collation_graph.graph,tv)
+#             source = collated_vertex_map[itv]
+#             dest = collated_vertex_map[tv]
+#             existing_dests = outneighbors(collation_graph.graph,source)
+#             sigil = get_sigil(tv)
+#             if dest in existing_dests
+#                 isrelevant(e) = e.src==source && e.dst==dest
+#                 edge = first_matching_edge(collation_graph,isrelevant)
+#                 sigils = get_prop(collation_graph.graph,edge,:sigils)
+#                 push!(sigils,sigil)
+#                 set_prop!(collation_graph.graph,edge,:sigils,sigils)
+#             else
+#                 sigils = Set{String}()
+#                 push!(sigils,sigil)
+#                 add_edge!(collation_graph.graph,source,dest,:sigils,sigils)
+#             end
+#         end
+#     end
+# end
+
 function get_collated_matches(collated_vertex_map,filtered_matches,witnesssigil)
     return [collated_match(match, witnesssigil, collated_vertex_map) for match in filtered_matches]
 end
 
 function collated_match(match, witnesssigil, collated_vertex_map)
-    _sigils = get_sigils(match)
-    other_sigil = _sigils[findfirst(x->x!=witnesssigil, _sigils)]
-    vertex = match.witness_vertex_map[other_sigil]
-    vertex2 = match.witness_vertex_map[witnesssigil]
     @show(collated_vertex_map)
-    vertex = collated_vertex_map[vertex]
+    _sigils = get_sigils(match)
+    @show(_sigils)
+    other_sigil = _sigils[findfirst(x->x!=witnesssigil, _sigils)]
+    @show(other_sigil)
+    vertex1 = match.witness_vertex_map[other_sigil]
+    vertex2 = match.witness_vertex_map[witnesssigil]
+#     @show(collated_vertex_map)
+    vertex = collated_vertex_map[other_sigil][vertex1]
     vertex_rank = match.ranking_map[witnesssigil]
     return CollatedMatch(vertex,vertex2,vertex_rank)
 end
