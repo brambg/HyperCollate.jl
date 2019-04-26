@@ -12,8 +12,6 @@ include("util.jl")
 
 @testset "collater" begin
     @testset "collating 2 xml texts" begin
-        include("util.jl")
-
         f_xml = """
         <text>
             <s>Hoe zoet moet nochtans zijn dit <subst><del>werven om</del><add>trachten naar</add></subst> een vrouw,
