@@ -5,7 +5,7 @@ parser3:
 - Date: 2019-03-05
 =#
 
-using LightGraphs,MetaGraphs,LibExpat
+using LightGraphs,MetaGraphs,LibExpat,WordTokenizers
 
 abstract type XMLToken end
 
@@ -129,11 +129,13 @@ function tokenize(xml::AbstractString)::Vector{XMLToken}
         push!(h.data, XMLEndElement(name))
     end
     cbs.character_data = function(h, txt)
-        if (isa(h.data[end],TextToken))
-            h.data[end].text *= txt
-        else
-            push!(h.data, TextToken(txt))
-        end
+#         if (isa(h.data[end],TextToken))
+#             h.data[end].text *= txt
+#         else
+            for t in WordTokenizers.tokenize(txt)
+                push!(h.data, TextToken(t))
+            end
+#         end
     end
     parse(xml,cbs,data = tokens)
     return tokens

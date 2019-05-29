@@ -198,6 +198,7 @@ function collate!(collation::Collation)
     sigils = sort(collect(keys(collation.variantwitness_graphs)))
     witnesses = [collation.variantwitness_graphs[s] for s in sigils]
     rankings = [ranking(wg) for wg in witnesses]
+    @show rankings
 
     matches = potential_matches(witnesses,rankings)
 #     @debug for m in matches
@@ -205,14 +206,18 @@ function collate!(collation::Collation)
 #     end
     collated_vertex_map = Dict{String,Dict{Integer,Integer}}()
     first = popfirst!(witnesses)
-    delete!(sigils,get_sigil(first))
+    filter!(s -> s != get_sigil(first), sigils) # remove first's sigil from sigilsS
     initialize(collation,collated_vertex_map,first)
     matches_sorted_by_rank_per_witness = sort_and_filter_matches_by_witness(matches, sigils)
-    print_matches_sorted_by_rank_per_witness(matches_sorted_by_rank_per_witness,collation)
+#     print_matches_sorted_by_rank_per_witness(matches_sorted_by_rank_per_witness,collation)
+#     @show sigils
     for s in sigils
+#         @show s
         sorted_matches = matches_sorted_by_rank_per_witness[s]
+#         @show sorted_matches
         witness = collation.variantwitness_graphs[s]
         collate!(collation,witness,sorted_matches,collated_vertex_map)
+        _debug_collationgraph(collation.graph)
     end
     collation.state = is_collated
     return collation
@@ -292,10 +297,7 @@ function initialize(collation::Collation, collated_vertex_map, witnessgraph)
     for wtn in [x for x in vertices(witnessgraph) if get_prop(witnessgraph,x,:type) == TEXTNODE]
         add_collation_vertex!(collation.graph,collated_vertex_map,wtn,witnessgraph)
     end
-    _debug_metagraph(witnessgraph)
-    _debug_collationgraph(collation.graph)
     add_edges!(collation, collated_vertex_map);
-    _debug_collationgraph(collation.graph)
 end
 
 function first_matching_edge(cg::CollationGraph,f)
@@ -424,15 +426,21 @@ end
 
 function add_collation_vertex!(collation_graph::CollationGraph,collated_vertex_map,v::Int,witnessgraph)
     sigil = get_sigil(witnessgraph)
+    @show sigil
     if !haskey(collated_vertex_map,sigil)
         collated_vertex_map[sigil] = Dict{Int,Int}()
     end
     if !haskey(collated_vertex_map[sigil],v)
-        text = get_prop(witnessgraph,v,:text)
-        collation_vertex = add_text_vertex!(collation_graph,text)
+        type = get_prop(witnessgraph,v,:type)
+#         @show(type)
+        if (type == TEXTNODE)
+           text = get_prop(witnessgraph,v,:text)
+           @show text
+           collation_vertex = add_text_vertex!(collation_graph,text)
 #       collationNode.addBranchPath(tokenVertex.getSigil(), tokenVertex.getBranchPath());
-        collated_vertex_map[sigil][v] = collation_vertex
+           collated_vertex_map[sigil][v] = collation_vertex
 #       addMarkupHyperEdges(collationGraph, witnessGraph, markupNodeIndex, tokenVertex, collationNode);
+        end
     end
 end
 
@@ -445,8 +453,9 @@ end
 
 function collate!(collation::Collation,witness,sorted_matches,collated_vertex_map)
     base_ranking = CollationGraphRanking(collation.graph)
+#     @show base_ranking
     p(m::Match) = !isempty(get_sigils(m))
-    filtered_matches = filter(p ,sorted_matches)
+    filtered_matches = filter(p, sorted_matches)
     witnesssigil = get_sigil(witness)
     push!(collation.graph.sigils,witnesssigil)
     collated_matches = get_collated_matches(collated_vertex_map,filtered_matches,witnesssigil)
@@ -462,6 +471,9 @@ function collate!(collation::Collation,witness,sorted_matches,collated_vertex_ma
         cv = match.collated_vertex
         text = get_prop(witness,wv,:text)
         add_token!(collation.graph,cv,text)
+        if !haskey(collated_vertex_map,witnesssigil)
+            collated_vertex_map[witnesssigil] = Dict{Int,Int}()
+        end
         collated_vertex_map[witnesssigil][wv]=cv
     end
     add_edges!(collation,collated_vertex_map)
