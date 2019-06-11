@@ -11,10 +11,10 @@ using HyperCollate,MetaGraphs
 include("util.jl")
 
 @testset "match" begin
-    TokenVertex v1 = mockVertexWithSigil("A");
-    TokenVertex v2 = mockVertexWithSigil("B");
-    TokenVertex v3 = mockVertexWithSigil("C");
-    TokenVertex v4 = mockVertexWithSigil("D");
+    v1 = mockVertexWithSigil("A");
+    v2 = mockVertexWithSigil("B");
+    v3 = mockVertexWithSigil("C");
+    v4 = mockVertexWithSigil("D");
     match = Match(v1, v2, v3, v4)//
     set_rank!(match,"A",1);
     set_rank!(match,"B",2);
