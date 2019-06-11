@@ -532,9 +532,8 @@ end
 function collated_match(match, witnesssigil, collated_vertex_map)
     @show(collated_vertex_map)
     _sigils = get_sigils(match)
-    @show(_sigils)
     other_sigil = _sigils[findfirst(x->x!=witnesssigil, _sigils)]
-    @show(other_sigil)
+#     @show(_sigils,witnesssigil,other_sigil)
     vertex1 = match.witness_vertex_map[other_sigil]
     vertex2 = match.witness_vertex_map[witnesssigil]
 #     @show(collated_vertex_map)
